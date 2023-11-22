@@ -8,6 +8,7 @@
 // ./exec
 
 int request_func(int *request, int *available, int **need, int num_resources, int customer);
+int release_func(int *release, int **allocation, int num_resources, int customer);
 
 int main(int argc, char *argv[]){
 
@@ -120,7 +121,15 @@ int main(int argc, char *argv[]){
                 
             }
             else if(strcmp(command, "RL") == 0){
-                 //fazer o release
+                int call_release = release_func(resources, allocation, num_resources, customer);
+
+                if(call_release == 1){
+                    for (int i = 0; i < num_resources; i++){
+                        allocation[customer][i] -= resources[i];
+                        available[i] += resources[i];
+                        need[customer][i] += allocation[customer][i]; //maximun - allocation
+                    }
+                }
             }
             else{
                 printf("Comando inválido\n");
@@ -133,22 +142,30 @@ int main(int argc, char *argv[]){
 }
 
 int request_func(int *request, int *available ,int **need, int num_resources, int customer){
-        for (int j = 0; j < num_resources; j++){
-            if((available[j] - request[j]) < 0){
-                //The resources 3 3 2 are not enough to customer 4 request 4 0 0
-                printf("The resources %d %d %d are not enough to customer %d request %d %d %d\n", available[0], available[1], available[2], customer, request[0], request[1], request[2]);
-                return 0;
-            }
-            if((need[customer][j] - request[j]) < 0 ){
-                printf("The customer %d request %d %d %d was denied because exceed its maximum need\n", customer, request[0], request[1], request[2]);
-                return 0;
-            }
+    for (int j = 0; j < num_resources; j++){
+        if((available[j] - request[j]) < 0){
+            //The resources 3 3 2 are not enough to customer 4 request 4 0 0
+            printf("The resources %d %d %d are not enough to customer %d request %d %d %d\n", available[0], available[1], available[2], customer, request[0], request[1], request[2]);
+            return 0;
         }
-        printf("Allocate to customer %d the resources %d %d %d\n", customer, request[0], request[1], request[2]);
-        return 1;
-        
+        if((need[customer][j] - request[j]) < 0 ){
+            printf("The customer %d request %d %d %d was denied because exceed its maximum need\n", customer, request[0], request[1], request[2]);
+            return 0;
+        }
     }
-    
+    printf("Allocate to customer %d the resources %d %d %d\n", customer, request[0], request[1], request[2]);
+    return 1;   
+}
+
+int release_func(int *release, int **allocation, int num_resources, int customer){
+    for(int i = 0; i < num_resources; i++){
+        if((allocation[customer][i] - release[i]) < 0){
+            printf("The customer %d release %d %d %d was denied because exceed its maximum allocation\n", customer, release[0], release[1], release[2]);
+            return 0;
+        }
+    }
+    return 1;
+}    
 
 
 
