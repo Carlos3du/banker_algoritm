@@ -9,6 +9,7 @@
 int request_func(int *request, int *available ,int **need, int **allocation, int num_resourses, int customer, int num_customers);
 int release_func(int *release, int **allocation, int num_resourses, int customer);
 int detect_deadlock(int num_resourses, int num_customers, int *available, int **need, int **allocation);
+void show_table(int **maximum, int **allocation, int **need, int *available, int num_resourses, int num_customers);
 
 int main(int argc, char *argv[]){
 
@@ -94,8 +95,7 @@ int main(int argc, char *argv[]){
 
     while (fgets(line, sizeof(line), commands_file) != NULL){ //armazena os comandos em uma struct (Comando, customer, recursos)
         if(strncmp(line, "*", 1) == 0){
-            //mostrar tabela
-           
+            show_table(maximum, allocation, need, available, num_resourses, num_customers);    
         } 
         else{
             strcpy(command, strtok(line, " ")); //armazena o comando
@@ -107,11 +107,6 @@ int main(int argc, char *argv[]){
 
             if(strcmp(command, "RQ") == 0){ //verifica se o comando é RQ e se for, chama a função de request
                 if(request_func(resources, available, need, allocation, num_resourses, customer, num_customers) == 1){ 
-                    for (int i = 0; i < num_resourses; i++){ //se alocou os recursos, atualiza as matrizes 
-                        allocation[customer][i] += resources[i];
-                        available[i] -= resources[i];
-                        need[customer][i] -= allocation[customer][i]; //maximun - allocation
-                    }
                 }
                 
             }
@@ -125,7 +120,7 @@ int main(int argc, char *argv[]){
                 }
             }
             else{
-                printf("Comando inválido\n");
+                //printf("Comando inválido\n");
             }
         }
     }
@@ -136,30 +131,54 @@ int main(int argc, char *argv[]){
 
 //Função de request de recursos
 int request_func(int *request, int *available ,int **need, int **allocation, int num_resourses, int customer, int num_customers){
+    FILE *file = fopen("result.txt", "a");
+    if(file == NULL){
+        printf("Error opening file!\n");
+    }
+
     for (int j = 0; j < num_resourses; j++){
         if((available[j] - request[j]) < 0){ //verifica se os recursos disponiveis são suficientes para alocar
             
-            printf("The resources %d %d %d are not enough to customer %d request %d %d %d\n", 
-                available[0], available[1], available[2], customer, request[0], request[1], request[2]);
+            fprintf(file, "The resources " );
+            for(int i = 0; i < num_resourses; i++){
+                fprintf(file, "%d ", available[i]);
+            }
+            
+            fprintf(file, "are not enough for customer %d request ", customer);
+            for(int i = 0; i < num_resourses; i++){
+                fprintf(file, "%d ", request[i]);
+            }
+            fprintf(file, "\n");
+            fclose(file);
             return 0;
         }
         if((need[customer][j] - request[j]) < 0 ){ //verifica se o customer possui os recursos que deseja alocar
-            printf("The customer %d request %d %d %d was denied because exceed its maximum need\n",
-                 customer, request[0], request[1], request[2]);
+
+            fprintf(file, "The customer %d request ", customer);
+            for(int i = 0; i < num_resourses; i++){
+                fprintf(file, "%d ", request[i]);
+            }
+            fprintf(file, "was denied because exceed its maximum need\n");
+            fclose(file);
             return 0;
         }
     }
    
         
-    for(int j = 0; j < num_resourses; j++){ //Simulando a alocação (temporario)
+    for(int j = 0; j < num_resourses; j++){ //Simulando a alocação 
         available[j] -= request[j];
         allocation[customer][j] += request[j];
         need[customer][j] -= request[j];
     }
     
     if(detect_deadlock(num_resourses, num_customers, available, need, allocation) == 0){ //Se o estado for seguro, aloca os recursos
-        printf("Allocate to customer %d the resources %d %d %d\n", 
-            customer, request[0], request[1], request[2]);
+    
+        fprintf(file, "Allocate to customer %d the resources ", customer);
+        for(int i = 0; i < num_resourses; i++){
+            fprintf(file, "%d ", request[i]);
+        }
+        fprintf(file, "\n");
+        fclose(file);
         return 1; 
     }
     else{ //Se o estado for inseguro, desfaz a alocação e retorna 0
@@ -168,23 +187,44 @@ int request_func(int *request, int *available ,int **need, int **allocation, int
             allocation[customer][j] -= request[j];
             need[customer][j] += request[j];
         }
-
-        printf("The customer %d request %d %d %d was denied because result in an unsafe state\n",
-            customer, request[0], request[1], request[2]);
+        
+        fprintf(file, "The customer %d request ", customer);
+        for(int i = 0; i < num_resourses; i++){
+            fprintf(file, "%d ", request[i]);
+        }
+        fprintf(file, "was denied because result in an unsafe state\n");
+        fclose(file);
         return 0;
     }
-      
+    
 }
 
 
 int release_func(int *release, int **allocation, int num_resourses, int customer){ //Função de release de recursos
+    FILE *file = fopen("result.txt", "a");
+    if(file == NULL){
+        printf("Error opening file!\n");
+    }
+
     for(int i = 0; i < num_resourses; i++){
         if((allocation[customer][i] - release[i]) < 0){ //Se o customer nao possui os recursos que deseja liberar, retorna 0
-            printf("The customer %d release %d %d %d was denied because exceed its maximum allocation\n", 
-                customer, release[0], release[1], release[2]);
+            fprintf(file, "The customer %d release ", customer);
+
+            for(int i = 0; i < num_resourses; i++){
+                fprintf(file, "%d ", release[i]);
+            }
+
+            fprintf(file, "was denied because exceed its maximum allocation\n");
+            fclose(file);
             return 0;
         }
     }
+    fprintf(file, "Release from customer %d the resources ", customer);
+    for(int i = 0; i < num_resourses; i++){
+        fprintf(file, "%d ", release[i]);
+    }
+    fprintf(file, "\n");
+    fclose(file);
     return 1;
 }    
 
@@ -235,4 +275,36 @@ int detect_deadlock(int num_resourses, int num_customers, int *available, int **
     }
 
     return 0; //Nenhum deadlock detectado
+}
+
+void show_table(int **maximum, int **allocation, int **need, int *available, int num_resourses, int num_customers){
+
+    FILE *file = fopen("result.txt", "a");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+    }
+
+    fprintf(file, "MAXIMUM | ALLOCATION | NEED\n");
+    for (int i = 0; i < num_customers; i++) {
+        for (int j = 0; j < num_resourses; j++) {
+            fprintf(file, "%d ", maximum[i][j]);
+        }
+        fprintf(file, "| ");
+        for (int j = 0; j < num_resourses; j++) {
+            fprintf(file, "%d ", allocation[i][j]);
+        }
+        fprintf(file, "| ");
+        for (int j = 0; j < num_resourses; j++) {
+            fprintf(file, "%d ", need[i][j]);
+        }
+        fprintf(file, "\n");
+    }
+
+    fprintf(file, "AVAILABLE:");
+    for(int i = 0; i < num_resourses; i++){
+        fprintf(file," %d", available[i]);
+    }
+    fprintf(file, "\n");
+
+    fclose(file);
 }
