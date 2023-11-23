@@ -304,12 +304,12 @@ void show_table(int **maximum, int **allocation, int **need, int *available, int
         for(int j = 0; j < num_resourses; j++){
             fprintf(file, "%d ", maximum[i][j]);
         }
-        fprintf(file, "| ");
+        fprintf(file, "  | ");
 
         for(int j = 0; j < num_resourses; j++){
             fprintf(file, "%d ", allocation[i][j]);
         }
-        fprintf(file, "| ");
+        fprintf(file, "     | ");
 
         for(int j = 0; j < num_resourses; j++){
             fprintf(file, "%d ", need[i][j]);
@@ -318,7 +318,7 @@ void show_table(int **maximum, int **allocation, int **need, int *available, int
         fprintf(file, "\n");
     }
 
-    fprintf(file, "AVAILABLE:");
+    fprintf(file, "AVAILABLE");
     for(int i = 0; i < num_resourses; i++){
         fprintf(file," %d", available[i]);
     }
